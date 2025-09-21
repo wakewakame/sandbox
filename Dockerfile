@@ -12,7 +12,11 @@ RUN apt update -y && \
 		git \
 		curl \
 		apt-file \
-		iproute2
+		iproute2 \
+		nodejs \
+		npm \
+		manpages-ja \
+		manpages-ja-dev
 
 # ユーザー作成
 RUN useradd -m -s /bin/bash user && \
@@ -33,5 +37,17 @@ AllowUsers user
 PermitEmptyPasswords yes
 _DOC_
 EOF
+
+# node.js の最新版インストール
+RUN npm install -g n
+RUN n stable
+
+# dotfiles の設定
+USER user
+WORKDIR /home/user
+RUN git clone https://github.com/wakewakame/dotfiles.git
+WORKDIR /home/user/dotfiles
+RUN ./install-dotfiles.sh
+USER root
 
 CMD ["/usr/sbin/sshd", "-D"]

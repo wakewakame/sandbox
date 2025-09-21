@@ -35,11 +35,15 @@ case "$(uname)" in
 		;;
 esac
 
+# 作業用のボリュームを作成
+docker volume create "${NAME}"
+
 # コンテナをビルド & 起動
 docker build -t "${NAME}" --network host .
 docker run \
 	-d --rm \
 	--net "${NAME}" \
+	--mount source="${NAME}",target=/home/user/work \
 	--name "${NAME}" \
 	--dns 8.8.8.8 \
 	-p 127.0.0.1:2222:22 \
