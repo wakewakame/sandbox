@@ -56,9 +56,11 @@ RUN ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
 # dotfiles の設定
 USER user
 WORKDIR /home/user
-RUN git clone https://github.com/wakewakame/dotfiles.git
-WORKDIR /home/user/dotfiles
-RUN ./install-dotfiles.sh
+RUN git clone https://github.com/wakewakame/dotfiles.git && \
+	cd dotfiles && \
+	./install-dotfiles.sh && \
+	cd ../ && \
+	rm -rf dotfiles
 
 # GitHub Copilot の設定
 USER user
