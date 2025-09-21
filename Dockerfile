@@ -58,6 +58,14 @@ WORKDIR /home/user
 RUN git clone https://github.com/wakewakame/dotfiles.git
 WORKDIR /home/user/dotfiles
 RUN ./install-dotfiles.sh
-USER root
 
+# GitHub Copilot の設定
+USER user
+RUN git clone --depth=1 https://github.com/github/copilot.vim.git ~/.vim/pack/github/start/copilot.vim
+
+# Codex CLI の設定
+USER root
+RUN npm install -g @openai/codex
+
+USER root
 CMD ["/usr/sbin/sshd", "-D"]
