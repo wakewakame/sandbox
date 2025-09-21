@@ -30,6 +30,9 @@ RUN n stable
 # ユーザー作成
 RUN useradd -m -s /bin/bash user && \
     passwd -d user
+USER user
+RUN mkdir /home/user/work
+USER root
 
 # sshd 設定
 RUN mkdir /var/run/sshd
