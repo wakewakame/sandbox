@@ -1,3 +1,52 @@
 #!/bin/sh -eu
-docker build -t sandbox .
-docker run -it --rm -p 8000:8000 sandbox
+
+# イメージ・ネットワーク名、コンテナのサブネット
+NAME='wakewakame-sandbox'
+SUBNET='172.23.0.0/16'
+
+# 古いコンテナ・ネットワークがあれば削除
+docker stop "${NAME}" || true
+docker network rm "${NAME}" || true
+
+# 終了時にコンテナ・ネットワークを削除する
+function cleanup {
+	docker stop "${NAME}" || true
+	docker network rm "${NAME}" || true
+}
+trap cleanup EXIT
+
+# ローカルネットワークへのアクセスができない docker network を作成する
+# NOTE: docker network ではデフォルトでは ipv6 は無効
+docker network create --driver bridge --subnet "${SUBNET}" "${NAME}"
+case "$(uname)" in
+	Linux*)
+		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
+		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
+		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
+		;;
+	Darwin*)
+		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
+		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
+		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
+		;;
+	*)
+		echo "Unknown OS"
+		exit 1
+		;;
+esac
+
+# コンテナをビルド & 起動
+docker build -t "${NAME}" --network host .
+docker run \
+	-d --rm \
+	--net "${NAME}" \
+	--name "${NAME}" \
+	--dns 8.8.8.8 \
+	-p 127.0.0.1:2222:22 \
+	-p 127.0.0.1:8000:8000 \
+	"${NAME}"
+
+# コンテナに入る
+for i in $(seq 1 30); do
+	ssh -o StrictHostKeyChecking=no -p 2222 -A user@127.0.0.1 && break || sleep 1
+done

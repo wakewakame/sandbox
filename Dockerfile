@@ -1,17 +1,37 @@
 FROM debian:latest
 
-# ユーザー作成
-RUN useradd -m -s /bin/bash user
-WORKDIR /home/user
-
 # apt 更新
-RUN apt update -y
-RUN apt upgrade -y
-RUN apt install -y ssh tmux vim git curl apt-file iproute2
+RUN apt update -y && \
+	apt upgrade -y && \
+	apt install -y \
+		sudo \
+		openssh-server \
+		ssh \
+		tmux \
+		vim \
+		git \
+		curl \
+		apt-file \
+		iproute2
 
-# TODO
-# - ローカルネットワークとの通信は全て遮断
-# - クレデンシャルを保持しない
-# - GitHub 等には ssh-agent 経由で接続
+# ユーザー作成
+RUN useradd -m -s /bin/bash user && \
+    passwd -d user
 
-USER user
+# sshd 設定
+RUN mkdir /var/run/sshd
+RUN <<EOF
+cat << _DOC_ > /etc/ssh/sshd_config
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+PermitRootLogin no
+AllowUsers user
+PermitEmptyPasswords yes
+_DOC_
+EOF
+
+CMD ["/usr/sbin/sshd", "-D"]
