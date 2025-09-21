@@ -31,7 +31,8 @@ RUN n stable
 RUN useradd -m -s /bin/bash user && \
     passwd -d user
 USER user
-RUN mkdir /home/user/work
+RUN mkdir /home/user/Downloads
+RUN mkdir /home/user/Documents
 USER root
 
 # sshd 設定
