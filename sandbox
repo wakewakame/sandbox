@@ -52,5 +52,5 @@ docker run \
 
 # コンテナに入る
 for i in $(seq 1 30); do
-	ssh -o StrictHostKeyChecking=no -p 2222 -A user@127.0.0.1 && break || sleep 1
+	ssh -p 2222 -A user@127.0.0.1 && break || sleep 1
 done

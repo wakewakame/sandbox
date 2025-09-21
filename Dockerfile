@@ -15,8 +15,17 @@ RUN apt update -y && \
 		iproute2 \
 		nodejs \
 		npm \
+		locales \
+		locales-all \
 		manpages-ja \
 		manpages-ja-dev
+
+# 日本語が入力できるよう設定
+RUN locale-gen && update-locale LANG=ja_JP.UTF-8
+
+# node.js の最新版インストール
+RUN npm install -g n
+RUN n stable
 
 # ユーザー作成
 RUN useradd -m -s /bin/bash user && \
@@ -37,10 +46,8 @@ AllowUsers user
 PermitEmptyPasswords yes
 _DOC_
 EOF
-
-# node.js の最新版インストール
-RUN npm install -g n
-RUN n stable
+RUN rm -f /etc/ssh/ssh_host_*_key*
+RUN ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
 
 # dotfiles の設定
 USER user
