@@ -5,56 +5,50 @@ cd "$(dirname "$(readlink "$0" || echo "$0")")"
 NAME='wakewakame-sandbox'
 SUBNET='172.23.0.0/16'
 
-# 古いコンテナ・ネットワークがあれば削除
-docker stop "${NAME}" || true
-docker network rm "${NAME}" || true
-
-# 終了時にコンテナ・ネットワークを削除する
-function cleanup {
+if [ "${1:-}" = "--launch" ]; then
+	# 古いコンテナ・ネットワークがあれば削除
 	docker stop "${NAME}" || true
 	docker network rm "${NAME}" || true
-}
-trap cleanup EXIT
 
+	# ローカルネットワークへのアクセスができない docker network を作成する
+	# NOTE: docker network ではデフォルトでは ipv6 は無効
+	docker network create --driver bridge --subnet "${SUBNET}" "${NAME}"
+	case "$(uname)" in
+		Linux*)
+			sudo iptables -F DOCKER-USER
+			sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
+			sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
+			sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
+			;;
+		Darwin*)
+			rdctl shell sudo iptables -F DOCKER-USER
+			rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
+			rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
+			rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
+			;;
+		*)
+			echo "Unknown OS"
+			exit 1
+			;;
+	esac
 
-# ローカルネットワークへのアクセスができない docker network を作成する
-# NOTE: docker network ではデフォルトでは ipv6 は無効
-docker network create --driver bridge --subnet "${SUBNET}" "${NAME}"
-case "$(uname)" in
-	Linux*)
-		sudo iptables -F DOCKER-USER
-		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
-		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
-		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
-		;;
-	Darwin*)
-		rdctl shell sudo iptables -F DOCKER-USER
-		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
-		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
-		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
-		;;
-	*)
-		echo "Unknown OS"
-		exit 1
-		;;
-esac
+	# 作業用のボリュームを作成
+	docker volume create "${NAME}"
 
-# 作業用のボリュームを作成
-docker volume create "${NAME}"
-
-# コンテナをビルド & 起動
-docker build -t "${NAME}" --network host .
-docker run \
-	-d --rm \
-	--net "${NAME}" \
-	--mount source="${NAME}",target=/home/user/Documents \
-	--name "${NAME}" \
-	--dns 8.8.8.8 \
-	-p 127.0.0.1:2222:22 \
-	-p 127.0.0.1:8000:8000 \
-	"${NAME}"
-
-# コンテナに入る
-for i in $(seq 1 30); do
-	ssh -p 2222 -A user@127.0.0.1 && break || sleep 1
-done
+	# コンテナをビルド & 起動
+	docker build -t "${NAME}" --network host .
+	docker run \
+		-d --rm \
+		--net "${NAME}" \
+		--mount source="${NAME}",target=/home/user/Documents \
+		--name "${NAME}" \
+		--dns 8.8.8.8 \
+		-p 127.0.0.1:2222:22 \
+		-p 127.0.0.1:8000:8000 \
+		"${NAME}"
+elif [ "${1:-}" = "--shutdown" ]; then
+	docker stop "${NAME}" || true
+	docker network rm "${NAME}" || true
+else
+	ssh -p 2222 -A user@127.0.0.1
+fi

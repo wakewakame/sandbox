@@ -13,5 +13,7 @@
 # 使い方
 
 ```
-./sandbox
+./sandbox --launch    # コンテナを起動
+./sandbox             # コンテナにログイン
+./sandbox --shutdown  # コンテナを終了
 ```
