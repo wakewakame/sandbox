@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/bash -eu
 cd "$(dirname "$(readlink "$0" || echo "$0")")"
 
 # イメージ・ネットワーク名、コンテナのサブネット
@@ -16,16 +16,19 @@ function cleanup {
 }
 trap cleanup EXIT
 
+
 # ローカルネットワークへのアクセスができない docker network を作成する
 # NOTE: docker network ではデフォルトでは ipv6 は無効
 docker network create --driver bridge --subnet "${SUBNET}" "${NAME}"
 case "$(uname)" in
 	Linux*)
+		sudo iptables -F DOCKER-USER
 		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
 		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
 		sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
 		;;
 	Darwin*)
+		rdctl shell sudo iptables -F DOCKER-USER
 		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 10.0.0.0/8 -j REJECT
 		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 172.16.0.0/12 -j REJECT
 		rdctl shell sudo iptables -I DOCKER-USER -s ${SUBNET} -d 192.168.0.0/16 -j REJECT
