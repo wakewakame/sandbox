@@ -18,7 +18,12 @@ RUN apt update -y && \
 		locales \
 		locales-all \
 		manpages-ja \
-		manpages-ja-dev
+		manpages-ja-dev \
+		htop \
+		jq \
+		pkg-config \
+		cmake \
+		gdb
 
 # 日本語が入力できるよう設定
 RUN locale-gen && update-locale LANG=ja_JP.UTF-8
@@ -61,6 +66,10 @@ RUN git clone https://github.com/wakewakame/dotfiles.git && \
 	./install-dotfiles.sh && \
 	cd ../ && \
 	rm -rf dotfiles
+
+# Rust のインストール
+USER user
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # GitHub Copilot の設定
 USER user
