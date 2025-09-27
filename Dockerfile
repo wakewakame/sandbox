@@ -41,7 +41,7 @@ RUN mkdir /home/user/Documents
 USER root
 
 # sshd 設定
-RUN mkdir /var/run/sshd
+RUN mkdir -p /var/run/sshd
 RUN <<EOF
 cat << _DOC_ > /etc/ssh/sshd_config
 KbdInteractiveAuthentication no
