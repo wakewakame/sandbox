@@ -79,5 +79,9 @@ RUN git clone --depth=1 https://github.com/github/copilot.vim.git ~/.vim/pack/gi
 USER root
 RUN npm install -g @openai/codex
 
+# Claude Code の設定
+USER user
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
 USER root
 CMD ["/usr/sbin/sshd", "-D"]
